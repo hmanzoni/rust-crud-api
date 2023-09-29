@@ -48,6 +48,27 @@ fn main() {
     }
 }
 
+// handle_client function
+fn handle_client(mut stream: TcpStream) {
+    let mut buffer = [0; 1024];
+    let mut request = String::new();
+
+    match stream.read(&mut buffer) {
+        Ok(size) => {
+            request.push_str(String::from_utf8_lossy(&buffer[..size]).as_ref());
+
+            let (status_line, content) = match &*request {
+                _ => (NOT_FOUND.to_string(), "404 Not Found".to_string()),
+            };
+
+            stream.write_all(format!("{}{}", status_line, content).as_bytes()).unwrap();
+        }
+        Err(e) => {
+            println!("Error: {}", e);
+        }
+    }
+}
+
 // set_database function
 fn set_database() -> Result<(), PostgresError> {
     // Connect to database
