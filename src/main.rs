@@ -125,6 +125,22 @@ fn handle_get_all_request(_request: &str) -> (String, String) {
     }
 }
 
+// handle_delete_request function
+fn handle_delete_request(request: &str) -> (String, String) {
+    match (get_id(&request).parse::<i32>(), Client::connect(DB_URL, NoTls)) {
+        (Ok(id), Ok(mut client)) => {
+            let rows_affected = client.execute("DELETE FROM users WHERE id = $1", &[&id]).unwrap();
+
+            if rows_affected == 0 {
+                return (NOT_FOUND.to_string(), "User not found".to_string());
+            }
+
+            (OK_RESP.to_string(), "User deleted".to_string())
+        }
+        _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string()),
+    }
+}
+
 // set_database function
 fn set_database() -> Result<(), PostgresError> {
     // Connect to database
