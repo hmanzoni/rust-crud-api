@@ -69,6 +69,21 @@ fn handle_client(mut stream: TcpStream) {
     }
 }
 
+// handle_post_request function
+fn handle_post_request(request: &str) -> (String, String) {
+    match (get_user_req_body(&request), Client::connect(DB_URL, NoTls)) {
+        (Ok(user), Ok(mut client)) => {
+            client.execute(
+                "INSERT INTO users (name, email) VALUES ($1, $2)",
+                &[&user.name, &user.email] 
+            ).unwrap();
+
+            (OK_RESP.to_string(), "User created".to_string())
+        }
+        _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string()),
+    }
+}
+
 // handle_get_request function
 fn handle_get_request(request: &str) -> (String, String) {
     match (get_id(&request).parse::<i32>(), Client::connect(DB_URL, NoTls)) {
@@ -129,4 +144,9 @@ fn set_database() -> Result<(), PostgresError> {
 // get_id function
 fn get_id(request: &str) -> &str {
     request.split("/").nth(2).unwrap_or_default().split_whitespace().next().unwrap_or_default()
+}
+
+// deserialize user from request body with the id
+fn get_user_req_body(request: &str) -> Result<User, serde_json::Error> {
+    serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
 }
