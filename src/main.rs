@@ -125,6 +125,27 @@ fn handle_get_all_request(_request: &str) -> (String, String) {
     }
 }
 
+// handle_put_request function
+fn handle_put_request(request: &str) -> (String, String) {
+    match
+        (
+            get_id(&request).parse::<i32>(),
+            get_user_req_body(&request),
+            Client::connect(DB_URL, NoTls),
+        )
+    {
+        (Ok(id), Ok(user), Ok(mut client)) => {
+            client
+                .execute(
+                    "UPDATE users SET name = $1, email = $2 WHERE id = $3",
+                    &[&user.name, &user.email, &id]
+                ).unwrap();
+            (OK_RESP.to_string(), "User updated".to_string())
+        }
+        _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string())
+    }
+}
+
 // handle_delete_request function
 fn handle_delete_request(request: &str) -> (String, String) {
     match (get_id(&request).parse::<i32>(), Client::connect(DB_URL, NoTls)) {
