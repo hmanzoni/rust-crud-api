@@ -69,6 +69,27 @@ fn handle_client(mut stream: TcpStream) {
     }
 }
 
+// handle_get_request function
+fn handle_get_request(request: &str) -> (String, String) {
+    match (get_id(&request).parse::<i32>(), Client::connect(DB_URL, NoTls)) {
+        (Ok(id), Ok(mut client)) =>
+            match client.query_one("SELECT * FROM users WHERE id = $1", &[&id]) {
+                Ok(row) => {
+                    let user = User {
+                        id: row.get(0),
+                        name: row.get(1),
+                        email: row.get(2),
+                    };
+
+                    (OK_RESP.to_string(), serde_json::to_string(&user).unwrap())
+                }
+                _ => (NOT_FOUND.to_string(), "User not found".to_string()),
+            }
+
+        _ => (INTERNAL_SERVER_ERROR.to_string(), "Error".to_string()),
+    }
+}
+
 // handle_get_all_request function
 fn handle_get_all_request(_request: &str) -> (String, String) {
     match Client::connect(DB_URL, NoTls) {
@@ -103,4 +124,9 @@ fn set_database() -> Result<(), PostgresError> {
         )"
     )?;
     Ok(())
+}
+
+// get_id function
+fn get_id(request: &str) -> &str {
+    request.split("/").nth(2).unwrap_or_default().split_whitespace().next().unwrap_or_default()
 }
